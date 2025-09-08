@@ -214,7 +214,7 @@ const App = () => {
                 />
               </div>
               <div className="col-md-2 d-flex align-items-center">
-                <strong>${(item.quantity * item.price).toFixed(2)}</strong>
+                <strong>{(item.quantity * item.price).toFixed(2)}</strong>
               </div>
               <div className="col-md-1 d-flex align-items-center">
                 <button
@@ -255,7 +255,7 @@ const App = () => {
           </div>
 
           <div className="d-flex justify-content-between align-items-center">
-            <h5>Total: ${calculateTotal()}</h5>
+            <h5>Total: {calculateTotal()}</h5>
             <button
               onClick={generatePdf}
               disabled={pdfLoading}

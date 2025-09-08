@@ -40,48 +40,52 @@ public class InvoiceService {
             document.open();
 
             // === HEADER (Company + INVOICE text) ===
-            PdfPTable header = new PdfPTable(2);
-            header.setWidthPercentage(100);
-            header.setWidths(new int[]{2, 1});
+            // === HEADER (Logo + Company Info + INVOICE text) ===
+PdfPTable header = new PdfPTable(3);
+header.setWidthPercentage(100);
+header.setWidths(new int[]{1, 3, 2});
 
-             if (invoice.getLogo() != null) {
-            Image logo = Image.getInstance(invoice.getLogo());
-            logo.scaleToFit(80, 80);
-            PdfPCell logoCell = new PdfPCell(logo);
-            logoCell.setBorder(Rectangle.NO_BORDER);
-            logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
-            header.addCell(logoCell);
-            } else {
-            PdfPCell emptyCell = new PdfPCell(new Phrase(""));
-            emptyCell.setBorder(Rectangle.NO_BORDER);
-            header.addCell(emptyCell);
-            }
+// Logo Cell
+if (invoice.getLogo() != null) {
+    Image logo = Image.getInstance(invoice.getLogo());
+    logo.scaleToFit(80, 80);
+    PdfPCell logoCell = new PdfPCell(logo);
+    logoCell.setBorder(Rectangle.NO_BORDER);
+    logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+    header.addCell(logoCell);
+} else {
+    PdfPCell emptyCell = new PdfPCell(new Phrase(""));
+    emptyCell.setBorder(Rectangle.NO_BORDER);
+    header.addCell(emptyCell);
+}
 
-            // Company Info
-            Font companyFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
-            Paragraph companyDetails = new Paragraph("Stoic And Salamandar\nThe Global Corporation", companyFont);
-            companyDetails.setAlignment(Element.ALIGN_LEFT);
+// Company Info
+Font companyNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+Font companyTaglineFont = FontFactory.getFont(FontFactory.HELVETICA, 12, BaseColor.DARK_GRAY);
 
-            PdfPCell companyCell = new PdfPCell(companyDetails);
-            companyCell.setBorder(Rectangle.NO_BORDER);
-            companyCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+Paragraph companyDetails = new Paragraph();
+companyDetails.add(new Phrase("Stoic And Salamandar\n", companyNameFont));
+companyDetails.add(new Phrase("The Global Corporation", companyTaglineFont));
+companyDetails.setAlignment(Element.ALIGN_LEFT);
 
-            // INVOICE Title
-            Font invoiceFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 24, BaseColor.BLUE);
-            Paragraph invoiceText = new Paragraph("INVOICE", invoiceFont);
-            invoiceText.setAlignment(Element.ALIGN_RIGHT);
+PdfPCell companyCell = new PdfPCell(companyDetails);
+companyCell.setBorder(Rectangle.NO_BORDER);
+companyCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+companyCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+header.addCell(companyCell);
 
-            PdfPCell invoiceCell = new PdfPCell(invoiceText);
-            invoiceCell.setBorder(Rectangle.NO_BORDER);
-            invoiceCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            invoiceCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+// INVOICE Title
+Font invoiceFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 24, BaseColor.BLUE);
+Paragraph invoiceText = new Paragraph("INVOICE", invoiceFont);
+invoiceText.setAlignment(Element.ALIGN_RIGHT);
 
-            header.addCell(companyCell);
-            header.addCell(invoiceCell);
-            document.add(header);
+PdfPCell invoiceCell = new PdfPCell(invoiceText);
+invoiceCell.setBorder(Rectangle.NO_BORDER);
+invoiceCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+invoiceCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+header.addCell(invoiceCell);
 
-            document.add(new LineSeparator());
-            document.add(Chunk.NEWLINE);
+document.add(header);
 
             // === CUSTOMER DETAILS ===
             PdfPTable customerTable = new PdfPTable(2);
