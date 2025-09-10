@@ -13,9 +13,25 @@ const App = () => {
   });
 
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [logoFile, setLogoFile] = useState(null); // ✅ new state for logo
-  const [logoPreview, setLogoPreview] = useState(null); // ✅ preview
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
 
+  // ✅ Format Date (DD-MM-YYYY)
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    const d = new Date(date);
+    return d.toLocaleDateString("en-GB"); // DD-MM-YYYY
+  };
+
+  // ✅ Format Currency (₹ with commas)
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(amount);
+
+  // ✅ Handle input change
   const handleInputChange = (e, key, nestedKey) => {
     const { value } = e.target;
     if (nestedKey) {
@@ -28,15 +44,30 @@ const App = () => {
     }
   };
 
+  // ✅ Prevent negative values in items
   const handleItemChange = (e, index, key) => {
-    const { value } = e.target;
+    let { value } = e.target;
+
+    if (key === "quantity") {
+      value = Math.max(1, parseInt(value) || 1); // min 1
+    }
+    if (key === "price") {
+      value = Math.max(0, parseFloat(value) || 0); // min 0
+    }
+
     const updatedItems = invoiceDetails.items.map((item, i) =>
       i === index ? { ...item, [key]: value } : item
     );
     setInvoiceDetails((prev) => ({ ...prev, items: updatedItems }));
   };
 
+  // ✅ Prevent empty item row
   const addItem = () => {
+    const lastItem = invoiceDetails.items[invoiceDetails.items.length - 1];
+    if (!lastItem.description || lastItem.price <= 0) {
+      alert("Please complete the last item before adding a new one.");
+      return;
+    }
     setInvoiceDetails((prev) => ({
       ...prev,
       items: [...prev.items, { description: "", quantity: 1, price: 0 }],
@@ -48,6 +79,7 @@ const App = () => {
     setInvoiceDetails((prev) => ({ ...prev, items: updatedItems }));
   };
 
+  // ✅ Calculate totals
   const calculateTotal = () => {
     return invoiceDetails.items.reduce((total, item) => {
       const quantity = parseFloat(item.quantity) || 0;
@@ -56,8 +88,25 @@ const App = () => {
     }, 0);
   };
 
+  const TAX_RATE = 0.18;
+  const subtotal = calculateTotal();
+  const taxAmount = subtotal * TAX_RATE;
+  const grandTotal = subtotal + taxAmount;
+
+  // ✅ Email validation
+  const isValidEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
   // ✅ Save Invoice with Logo Upload
   const saveInvoice = async () => {
+    // Email validation check
+    if (!isValidEmail(invoiceDetails.billTo.email)) {
+      alert("Please enter a valid email address.");
+      return null;
+    }
+
     const formData = new FormData();
 
     const invoice = {
@@ -85,10 +134,11 @@ const App = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       alert("Invoice Saved!");
-      return res.data; // return saved invoice
+      return res.data;
     } catch (err) {
       console.error(err);
       alert("Error saving invoice");
+      return null;
     }
   };
 
@@ -96,7 +146,7 @@ const App = () => {
   const generatePdf = async () => {
     setPdfLoading(true);
     try {
-      const savedInvoice = await saveInvoice(); // Save first
+      const savedInvoice = await saveInvoice();
       if (!savedInvoice) throw new Error("Invoice not saved");
 
       const pdfResponse = await fetch(
@@ -185,8 +235,8 @@ const App = () => {
 
           <h4 className="mt-4">Items</h4>
           {invoiceDetails.items.map((item, index) => (
-            <div className="row mb-2" key={index}>
-              <div className="col-md-5">
+            <div className="row mb-2 align-items-center" key={index}>
+              <div className="col-12 col-md-5 mb-2 mb-md-0">
                 <input
                   type="text"
                   className="form-control"
@@ -195,30 +245,32 @@ const App = () => {
                   onChange={(e) => handleItemChange(e, index, "description")}
                 />
               </div>
-              <div className="col-md-2">
+              <div className="col-6 col-md-2 mb-2 mb-md-0">
                 <input
                   type="number"
                   className="form-control"
                   placeholder="Qty"
+                  min="1"
                   value={item.quantity}
                   onChange={(e) => handleItemChange(e, index, "quantity")}
                 />
               </div>
-              <div className="col-md-2">
+              <div className="col-6 col-md-2 mb-2 mb-md-0">
                 <input
                   type="number"
                   className="form-control"
                   placeholder="Price"
+                  min="0"
                   value={item.price}
                   onChange={(e) => handleItemChange(e, index, "price")}
                 />
               </div>
-              <div className="col-md-2 d-flex align-items-center">
-                <strong>{(item.quantity * item.price).toFixed(2)}</strong>
+              <div className="col-6 col-md-2 text-md-end mb-2 mb-md-0">
+                <strong>{formatCurrency(item.quantity * item.price)}</strong>
               </div>
-              <div className="col-md-1 d-flex align-items-center">
+              <div className="col-6 col-md-1 text-md-center">
                 <button
-                  className="btn btn-danger btn-sm"
+                  className="btn btn-danger btn-sm w-100"
                   onClick={() => removeItem(index)}
                 >
                   ✕
@@ -226,7 +278,7 @@ const App = () => {
               </div>
             </div>
           ))}
-          <button className="btn btn-success mb-3" onClick={addItem}>
+          <button className="btn btn-success mb-3 w-100" onClick={addItem}>
             + Add Item
           </button>
 
@@ -254,8 +306,8 @@ const App = () => {
             />
           </div>
 
-          <div className="d-flex justify-content-between align-items-center">
-            <h5>Total: {calculateTotal()}</h5>
+          <div className="d-flex justify-content-between align-items-center flex-wrap">
+            <h5>Total: {formatCurrency(subtotal)}</h5>
             <button
               onClick={generatePdf}
               disabled={pdfLoading}
@@ -287,10 +339,10 @@ const App = () => {
                   {invoiceDetails.invoiceNumber || "N/A"}
                 </p>
                 <p>
-                  <strong>Date:</strong> {invoiceDetails.invoiceDate}
+                  <strong>Date:</strong> {formatDate(invoiceDetails.invoiceDate)}
                 </p>
                 <p>
-                  <strong>Due:</strong> {invoiceDetails.dueDate || "N/A"}
+                  <strong>Due:</strong> {formatDate(invoiceDetails.dueDate)}
                 </p>
               </div>
               <div className="text-end">
@@ -315,17 +367,20 @@ const App = () => {
                   <tr key={i}>
                     <td>{item.description || "-"}</td>
                     <td className="text-center">{item.quantity}</td>
-                    <td className="text-end">{item.price}</td>
+                    <td className="text-end">{formatCurrency(item.price)}</td>
                     <td className="text-end">
-                      {(item.quantity * item.price).toFixed(2)}
+                      {formatCurrency(item.quantity * item.price)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
+            {/* ✅ Subtotal + Tax + Grand Total */}
             <div className="text-end">
-              <h5>Grand Total: {calculateTotal()}</h5>
+              <p>Subtotal: {formatCurrency(subtotal)}</p>
+              <p>Tax (18%): {formatCurrency(taxAmount)}</p>
+              <h5>Grand Total: {formatCurrency(grandTotal)}</h5>
             </div>
 
             {invoiceDetails.notes && (
